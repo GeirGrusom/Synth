@@ -1,0 +1,54 @@
+﻿@namespace Synthetic
+@classname SynthLang
+@using System.Linq;
+@using System.Linq.Expressions;
+@start compileUnit
+
+@members
+{
+	public ParameterExpression Time { get; } = Expression.Parameter(typeof(double), "t");
+	private static readonly System.Reflection.MethodInfo SinhMethod = typeof(System.Math).GetMethod("Sinh", new [] { typeof(double) });
+	private static readonly System.Reflection.MethodInfo SinMethod = typeof(System.Math).GetMethod("Sin", new [] { typeof(double) });
+	private static readonly System.Reflection.MethodInfo CoshMethod = typeof(System.Math).GetMethod("Cosh", new [] { typeof(double) });
+	private static readonly System.Reflection.MethodInfo CosMethod = typeof(System.Math).GetMethod("Cos", new [] { typeof(double) });
+	private static readonly System.Reflection.MethodInfo TanMethod = typeof(System.Math).GetMethod("Tan", new [] { typeof(double) });
+	private static readonly System.Reflection.MethodInfo TanhMethod = typeof(System.Math).GetMethod("Tanh", new [] { typeof(double) });
+	private static readonly System.Reflection.MethodInfo SqrtMethod = typeof(System.Math).GetMethod("Sqrt", new [] { typeof(double) });	
+}
+
+compileUnit <Expression> = _ exp: expression _ { exp }
+
+expression <Expression> = add
+
+multiply <Expression> 
+	= lhs: simple _ '*' _ rhs: multiply { Expression.Multiply(lhs, rhs) }
+	/ lhs: simple _ '/' _ rhs: multiply { Expression.Divide(lhs, rhs) }
+	/ simple
+
+add <Expression> 
+	= lhs: multiply _ '+' _ rhs: add { Expression.Add(lhs, rhs) }
+	/ lhs: multiply _ '-' _ rhs: add { Expression.Subtract(lhs, rhs) }
+	/ multiply
+
+
+simple <Expression> 
+	= '(' exp: expression ')' { exp }
+	/ float
+	/ 'sinh'i _ exp: simple _ { Expression.Call(SinhMethod, exp) }
+	/ 'sin'i _ exp: simple _ { Expression.Call(SinMethod, exp) }
+	/ 'cosh'i _ exp: simple _ { Expression.Call(CoshMethod, exp) }
+	/ 'cos'i _ exp: simple _ { Expression.Call(CosMethod, exp) }
+	/ 'tan'i _ exp: simple _ { Expression.Call(TanMethod, exp) }
+	/ 'sqrt'i _ exp: simple _ { Expression.Call(SqrtMethod, exp) }
+	/ 'pi'i _ { Expression.Constant(System.Math.PI) }
+	/ 'phi'i _ { Expression.Constant(System.Math.PI * 2) }
+	/ 'e'i _ { Expression.Constant(System.Math.E) }
+	/ _ 't'i _ { Time } 
+	/ _ '-' _ exp: expression _ { Expression.Negate(exp) }
+	
+
+float <Expression> = _ value: ([0-9]+ ('.' [0-9]+)?) _ { Expression.Constant(double.Parse(value, System.Globalization.CultureInfo.InvariantCulture), typeof(double)) }
+
+_ = [ \t\r\n]*
+
+EOF = !.
